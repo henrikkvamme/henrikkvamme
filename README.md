@@ -1,10 +1,23 @@
-- 👋 Hi, I’m @henrik392 (Henrik Halvorsen Kvamme), currently a student from Norway.
-- 👀 I’m interested in app development, game development, web development, UX, vector illustrations (art, icons, logos), making electronic devices (e.g. Arduino, Raspberry Pi, other microcontrollers).
-- 🌱 I’m currently learning Flutter, React, Tailwind CSS, more curcuiting and soldering.
-- 💞️ I’m looking to collaborate any of the avbove interests, although collaborating with someone who has experience with arts would be ideal.
-- 📫 You can reach me through email: henrik.halvorsen.kvamme@gmail.com
+**Full-Stack Developer**
+📍 Trondheim, Norway
 
-<!---
-henrik392/henrik392 is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+10 years building software. Currently
+consultant at Texicon, and working on exciting projects.
+
+**Stack:** Next.js, TypeScript, Rust
+PostgreSQL, Python
+**Focus:** Web apps, mobile development, AI/ML
+
+## Recent Projects
+- **[Voice Cloner](https://github.com/henrik39
+2/youtube-voice-go)** - AI voice synthesis
+from social media URLs
+- **[Merch-Whiz](https://github.com/henrik392/
+merch-whiz)** - E-commerce platform with tRPC
+- **[Membership Card Tool](https://github.com/
+henrik392/samfundet-medlemskort)** - Precise
+photo cropping for print
+
+💚 Available for freelance work
+
+[Portfolio](https://henrikkvamme.no)
