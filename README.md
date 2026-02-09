@@ -1,7 +1,7 @@
-# 👋 Hi, I’m [Henrik Kvamme](https://henrikkvamme.no/)
+# 👋 Hi, I'm [Henrik Kvamme](https://henrikkvamme.no/)
 
 🚀 **Full‑Stack Developer** (Frontend • Backend • AI/ML)  
-🎓 Computer Science student at **NTNU** (Norway’s leading tech university)  
+🎓 Computer Science student at **NTNU** (Norway's leading tech university)  
 💡 Experienced in **startups, consultancy, and competitive programming**  
 
 ---
@@ -31,9 +31,10 @@
 ## 📫 Get in Touch  
 - 🌐 [Portfolio Website](https://henrikkvamme.no)  
 - 💼 [LinkedIn](https://linkedin.com/in/henrik-kvamme)  
-- 🐙 [GitHub](https://github.com/henrik392)  
+- 🐙 [GitHub](https://github.com/henrikkvamme)  
 - ✉️ [Email](mailto:henrik.halvorsen.kvamme@gmail.com)
 
 ---
 
 ✨ *Don't be afraid to reach out, I don't bite. I promise.*
+
