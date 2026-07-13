@@ -1,174 +1,441 @@
 #!/usr/bin/env python3
-"""Generate the terminal-style SVG used by the profile README."""
+"""Generate Henrik's profile SVGs from public GitHub data.
+
+The portrait is approved, static ASCII text. This script only fetches structured
+GitHub data and renders deterministic light and dark SVGs. It has no LLM or
+image-generation dependency.
+"""
 
 from __future__ import annotations
 
+import base64
+import datetime as dt
+import html
 import json
 import os
+import re
+import time
+from dataclasses import dataclass
 from pathlib import Path
-from urllib.error import HTTPError, URLError
+from typing import Any
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "assets" / "profile-terminal.svg"
-PORTRAIT = ROOT / "assets" / "portrait-fragment.svg"
-USERNAME = "henrikkvamme"
-
-FALLBACK = {
-    "public_repos": 55,
-    "followers": 47,
-    "stars": 40,
+PORTRAIT = ROOT / "assets" / "portrait.txt"
+OUTPUTS = {
+    "dark": ROOT / "assets" / "dark-mode.svg",
+    "light": ROOT / "assets" / "light-mode.svg",
 }
+USERNAME = "henrikkvamme"
+API_VERSION = "2022-11-28"
 
 
-def github_json(path: str) -> object:
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "User-Agent": f"{USERNAME}-profile-generator",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    request = Request(f"https://api.github.com{path}", headers=headers)
-    with urlopen(request, timeout=15) as response:
-        return json.load(response)
+@dataclass(frozen=True)
+class ActivityStats:
+    active_days: int
+    current_streak: int
+    longest_streak: int
 
 
-def profile_stats() -> dict[str, int]:
-    try:
-        user = github_json(f"/users/{USERNAME}")
-        assert isinstance(user, dict)
-        repos: list[object] = []
-        page = 1
-        while True:
-            batch = github_json(
-                f"/users/{USERNAME}/repos?per_page=100&type=owner&page={page}"
-            )
-            assert isinstance(batch, list)
-            repos.extend(batch)
-            if len(batch) < 100:
-                break
-            page += 1
-        return {
-            "public_repos": int(user["public_repos"]),
-            "followers": int(user["followers"]),
-            "stars": sum(
-                int(repo.get("stargazers_count", 0))
-                for repo in repos
-                if isinstance(repo, dict) and not repo.get("fork", False)
-            ),
+@dataclass(frozen=True)
+class ProjectStats:
+    henteplan_providers: int
+    henteplan_municipalities: str
+    folio_tools: int
+
+
+@dataclass(frozen=True)
+class ProfileStats:
+    public_repos: int
+    original_repos: int
+    followers: int
+    stars: int
+    top_repo: str
+    top_repo_stars: int
+    contributions: int
+    commits: int
+    pull_requests: int
+    active_days: int
+    current_streak: int
+    longest_streak: int
+    restricted_contributions: int = 0
+    merged_pull_requests: int = 0
+    henteplan_providers: int = 0
+    henteplan_municipalities: str = "0"
+    folio_tools: int = 0
+
+    @property
+    def public_contributions(self) -> int:
+        return max(0, self.contributions - self.restricted_contributions)
+
+
+class GitHubClient:
+    def __init__(self, token: str | None = None) -> None:
+        self.token = token or os.environ.get("GITHUB_TOKEN") or os.environ.get(
+            "GH_TOKEN"
+        )
+
+    def _headers(self) -> dict[str, str]:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": f"{USERNAME}-profile-generator",
+            "X-GitHub-Api-Version": API_VERSION,
         }
-    except (AssertionError, HTTPError, KeyError, TypeError, URLError, ValueError) as error:
-        if os.environ.get("GITHUB_ACTIONS") == "true":
-            raise RuntimeError("Could not refresh GitHub profile data") from error
-        print(f"GitHub data unavailable, using fallback stats: {error}")
-        return FALLBACK.copy()
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
+
+    def request_json(
+        self, url: str, *, payload: dict[str, Any] | None = None
+    ) -> Any:
+        body = json.dumps(payload).encode("utf-8") if payload is not None else None
+        request = Request(url, data=body, headers=self._headers())
+        if payload is not None:
+            request.add_header("Content-Type", "application/json")
+
+        for attempt in range(3):
+            try:
+                with urlopen(request, timeout=30) as response:
+                    return json.load(response)
+            except HTTPError as error:
+                if error.code not in {429, 502, 503, 504} or attempt == 2:
+                    raise
+                time.sleep(2**attempt)
+        raise RuntimeError("GitHub request failed after retries")
+
+    def rest(self, path: str) -> Any:
+        return self.request_json(f"https://api.github.com{path}")
+
+    def graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+        if not self.token:
+            raise RuntimeError("GITHUB_TOKEN or GH_TOKEN is required for GraphQL")
+        response = self.request_json(
+            "https://api.github.com/graphql",
+            payload={"query": query, "variables": variables},
+        )
+        if not isinstance(response, dict):
+            raise RuntimeError("GitHub GraphQL returned a non-object response")
+        if response.get("errors"):
+            raise RuntimeError(f"GitHub GraphQL errors: {response['errors']}")
+        return response
+
+    def repository_text(self, repository: str, path: str) -> str:
+        response = self.rest(f"/repos/{USERNAME}/{repository}/contents/{path}")
+        if not isinstance(response, dict) or response.get("encoding") != "base64":
+            raise RuntimeError(f"Could not read {repository}/{path} from GitHub")
+        encoded = str(response["content"]).replace("\n", "")
+        return base64.b64decode(encoded).decode("utf-8")
 
 
-def text(x: int, y: int, value: str, css_class: str = "value") -> str:
-    return f'<text x="{x}" y="{y}" class="{css_class}">{value}</text>'
+def calculate_activity(
+    days: list[dict[str, Any]], *, today: dt.date | None = None
+) -> ActivityStats:
+    today = today or dt.date.today()
+    counts = {
+        dt.date.fromisoformat(str(day["date"])): int(day["contributionCount"])
+        for day in days
+    }
+    active_days = sum(count > 0 for count in counts.values())
+
+    longest_streak = 0
+    running_streak = 0
+    previous: dt.date | None = None
+    for day, count in sorted(counts.items()):
+        if count <= 0:
+            running_streak = 0
+        elif previous is not None and day == previous + dt.timedelta(days=1):
+            running_streak += 1
+        else:
+            running_streak = 1
+        longest_streak = max(longest_streak, running_streak)
+        previous = day
+
+    cursor = today if counts.get(today, 0) > 0 else today - dt.timedelta(days=1)
+    current_streak = 0
+    while counts.get(cursor, 0) > 0:
+        current_streak += 1
+        cursor -= dt.timedelta(days=1)
+
+    return ActivityStats(active_days, current_streak, longest_streak)
+
+
+def summarize_stats(
+    user: dict[str, Any],
+    repos: list[dict[str, Any]],
+    contribution_data: dict[str, Any],
+    project_stats: ProjectStats | None = None,
+    *,
+    today: dt.date | None = None,
+) -> ProfileStats:
+    project_stats = project_stats or ProjectStats(0, "0", 0)
+    original_repos = [repo for repo in repos if not bool(repo.get("fork"))]
+    top_repo = max(
+        original_repos,
+        key=lambda repo: (int(repo.get("stargazers_count", 0)), str(repo["name"])),
+        default={"name": "none", "stargazers_count": 0},
+    )
+    activity = calculate_activity(contribution_data["days"], today=today)
+
+    return ProfileStats(
+        public_repos=int(user["public_repos"]),
+        original_repos=len(original_repos),
+        followers=int(user["followers"]),
+        stars=sum(int(repo.get("stargazers_count", 0)) for repo in original_repos),
+        top_repo=str(top_repo["name"]),
+        top_repo_stars=int(top_repo.get("stargazers_count", 0)),
+        contributions=int(contribution_data["totalContributions"]),
+        commits=int(contribution_data["totalCommitContributions"]),
+        pull_requests=int(contribution_data["totalPullRequestContributions"]),
+        active_days=activity.active_days,
+        current_streak=activity.current_streak,
+        longest_streak=activity.longest_streak,
+        restricted_contributions=int(
+            contribution_data.get("restrictedContributionsCount", 0)
+        ),
+        merged_pull_requests=int(contribution_data.get("mergedPullRequests", 0)),
+        henteplan_providers=project_stats.henteplan_providers,
+        henteplan_municipalities=project_stats.henteplan_municipalities,
+        folio_tools=project_stats.folio_tools,
+    )
+
+
+def parse_project_stats(henteplan_readme: str, folio_source: str) -> ProjectStats:
+    providers = re.search(r"\*\*(\d+) providers\*\*", henteplan_readme)
+    municipalities = re.search(
+        r"\*\*(\d+\+) municipalities\*\*", henteplan_readme
+    )
+    folio_tools = folio_source.count("server.registerTool(")
+    if not providers or not municipalities or folio_tools == 0:
+        raise RuntimeError("Could not derive project proof points from source")
+    return ProjectStats(
+        henteplan_providers=int(providers.group(1)),
+        henteplan_municipalities=municipalities.group(1),
+        folio_tools=folio_tools,
+    )
+
+
+def fetch_stats(client: GitHubClient) -> ProfileStats:
+    user = client.rest(f"/users/{USERNAME}")
+    repos: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        batch = client.rest(
+            f"/users/{USERNAME}/repos?per_page=100&type=owner&page={page}"
+        )
+        if not isinstance(batch, list):
+            raise RuntimeError("GitHub REST returned an unexpected repository page")
+        repos.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+
+    if not isinstance(user, dict):
+        raise RuntimeError("GitHub REST returned an unexpected response")
+
+    project_stats = parse_project_stats(
+        client.repository_text("henteplan", "README.md"),
+        client.repository_text("folio-mcp", "src/server.ts"),
+    )
+
+    query = """
+    query ProfileActivity($login: String!, $pullRequestQuery: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays { date contributionCount }
+            }
+          }
+          restrictedContributionsCount
+          totalCommitContributions
+          totalPullRequestContributions
+        }
+      }
+      pullRequests: search(query: $pullRequestQuery, type: ISSUE, first: 1) {
+        issueCount
+      }
+    }
+    """
+    response = client.graphql(
+        query,
+        {
+            "login": USERNAME,
+            "pullRequestQuery": (
+                f"author:{USERNAME} is:pr is:merged is:public"
+            ),
+        },
+    )
+    data = response["data"]
+    collection = data["user"]["contributionsCollection"]
+    calendar = collection["contributionCalendar"]
+    days = [
+        day
+        for week in calendar["weeks"]
+        for day in week["contributionDays"]
+    ]
+    contribution_data = {
+        "totalContributions": calendar["totalContributions"],
+        "restrictedContributionsCount": collection[
+            "restrictedContributionsCount"
+        ],
+        "totalCommitContributions": collection["totalCommitContributions"],
+        "totalPullRequestContributions": collection[
+            "totalPullRequestContributions"
+        ],
+        "mergedPullRequests": data["pullRequests"]["issueCount"],
+        "days": days,
+    }
+    return summarize_stats(user, repos, contribution_data, project_stats)
+
+
+def format_number(value: int) -> str:
+    return f"{value:,}"
 
 
 def row(y: int, label: str, value: str) -> str:
-    return "\n".join(
+    dots = "." * max(3, 24 - len(label))
+    return (
+        f'<text x="430" y="{y}"><tspan class="muted">. </tspan>'
+        f'<tspan class="key">{html.escape(label)}</tspan>:'
+        f'<tspan class="muted"> {dots} </tspan>'
+        f'<tspan class="value">{html.escape(value)}</tspan></text>'
+    )
+
+
+def section(y: int, label: str) -> str:
+    rule = "-" * max(8, 61 - len(label))
+    return (
+        f'<text x="430" y="{y}" class="fg">- {html.escape(label)} '
+        f'<tspan class="muted">{rule}</tspan></text>'
+    )
+
+
+def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
+    palettes = {
+        "dark": {
+            "background": "#161b22",
+            "foreground": "#c9d1d9",
+            "key": "#ffa657",
+            "value": "#a5d6ff",
+            "muted": "#616e7f",
+            "accent": "#3fb950",
+        },
+        "light": {
+            "background": "#f6f8fa",
+            "foreground": "#24292f",
+            "key": "#953800",
+            "value": "#0550ae",
+            "muted": "#6e7781",
+            "accent": "#1a7f37",
+        },
+    }
+    colors = palettes[theme]
+    first_ascii_row = html.escape(portrait[0], quote=False)
+    ascii_rows = [
+        f'<tspan x="15" dy="20">{html.escape(line, quote=False)}</tspan>'
+        for line in portrait[1:]
+    ]
+
+    current_streak = f"{stats.current_streak} days current"
+    longest_streak = f"{stats.longest_streak} days longest"
+    details = "\n  ".join(
         (
-            text(520, y, label, "label"),
-            text(650, y, "·" * 9, "dots"),
-            text(748, y, value, "value"),
+            '<text x="430" y="30" class="fg">henrik@github '
+            '<tspan class="muted">----------------------------------------------------</tspan></text>',
+            row(60, "OS", "macOS, Linux"),
+            row(80, "Role", "Software engineer + startup builder"),
+            row(100, "Company", "Texicon"),
+            row(120, "Education", "Computer Science @ NTNU"),
+            row(140, "Location", "Trondheim, Norway"),
+            section(180, "Building"),
+            row(
+                210,
+                "Henteplan",
+                f"{stats.henteplan_providers} providers / "
+                f"{stats.henteplan_municipalities} municipalities",
+            ),
+            row(230, "Folio MCP", f"{stats.folio_tools} tools for business banking"),
+            row(250, "Portfolio", "henrikkvamme.no"),
+            section(290, "GitHub"),
+            row(
+                320,
+                "Contributions.1y",
+                f"{format_number(stats.contributions)} total / "
+                f"{format_number(stats.public_contributions)} public",
+            ),
+            row(
+                340,
+                "Output.1y",
+                f"{format_number(stats.commits)} commits / "
+                f"{format_number(stats.pull_requests)} pull requests",
+            ),
+            row(
+                360,
+                "Merged.PRs",
+                f"{format_number(stats.merged_pull_requests)} public",
+            ),
+            row(
+                380,
+                "Projects",
+                f"{stats.original_repos} original / {stats.public_repos} public repos",
+            ),
+            row(400, "Stars", f"{format_number(stats.stars)} on original repos"),
+            row(420, "Streaks", f"{current_streak} / {longest_streak}"),
+            row(440, "Active.Days.1y", format_number(stats.active_days)),
+            row(460, "Followers", format_number(stats.followers)),
+            row(
+                480,
+                "Top.Repository",
+                f"{stats.top_repo} / {stats.top_repo_stars} stars",
+            ),
+            section(520, "Stack"),
+            row(550, "Languages", "TypeScript, Python, Rust, Shell"),
+            row(570, "Systems", "Nix, Docker, GitHub Actions, self-hosting"),
         )
     )
 
-
-def section(y: int, title: str) -> str:
-    return "\n".join(
-        (
-            text(520, y, f"- {title} ", "section"),
-            f'<line x1="640" y1="{y - 5}" x2="1144" y2="{y - 5}" class="rule" />',
-        )
-    )
-
-
-def build_svg(stats: dict[str, int], portrait_svg: str) -> str:
-    details = "\n".join(
-        (
-            '<text x="520" y="74" class="prompt-user">henrik</text>',
-            '<text x="582" y="74" class="prompt-muted">@trondheim</text>',
-            section(114, "Profile"),
-            row(146, "OS", "macOS, Linux"),
-            row(172, "Role", "Full-stack developer @ Texicon"),
-            row(198, "Education", "Computer Science @ NTNU"),
-            row(224, "Location", "Trondheim, Norway"),
-            row(250, "Focus", "Local-first tools, Nix, agent infrastructure"),
-            section(294, "Stack"),
-            row(326, "Languages", "Rust, TypeScript, Nix, Shell"),
-            row(352, "Apps", "Tauri, React, native macOS"),
-            row(378, "Systems", "Nix, Home Manager, Git"),
-            row(404, "Infra", "Docker, self-hosting, VPS"),
-            section(448, "Building"),
-            row(480, "Current", "macOS-first Nix &amp; agent tooling"),
-            section(524, "Contact"),
-            row(556, "Web", "henrikkvamme.no"),
-            row(582, "Email", "henrik.halvorsen.kvamme@gmail.com"),
-        )
-    )
-
-    stats_line = (
-        f'{stats["public_repos"]} repositories'
-        f'  ·  {stats["stars"]} stars'
-        f'  ·  {stats["followers"]} followers'
-    )
-
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title description">
-  <title id="title">Henrik Kvamme's terminal-style profile</title>
-  <desc id="description">An ASCII portrait of Henrik beside a terminal-inspired summary of his work, technology stack, projects, and GitHub statistics.</desc>
-  <defs>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#010409" flood-opacity="0.42" />
-    </filter>
-    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0d1117" />
-      <stop offset="1" stop-color="#111923" />
-    </linearGradient>
-  </defs>
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="600" viewBox="0 0 1120 600" role="img" aria-labelledby="title desc">
+  <title id="title">Henrik Kvamme's GitHub profile</title>
+  <desc id="desc">A portrait made from literal ASCII characters beside Henrik's work and automatically updated public GitHub statistics.</desc>
   <style>
-    text {{ font-family: SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 15px; }}
-    .window-title {{ fill: #8b949e; font-size: 13px; }}
-    .portrait-name {{ fill: #f0f6fc; font-size: 19px; font-weight: 700; }}
-    .portrait-role {{ fill: #8b949e; font-size: 13px; }}
-    .prompt-user {{ fill: #7ee787; font-size: 17px; font-weight: 700; }}
-    .prompt-muted {{ fill: #8b949e; font-size: 17px; }}
-    .section {{ fill: #c9d1d9; font-size: 15px; font-weight: 700; }}
-    .label {{ fill: #ffa657; }}
-    .dots {{ fill: #484f58; letter-spacing: 2px; }}
-    .value {{ fill: #a5d6ff; }}
-    .rule {{ stroke: #30363d; stroke-width: 1; }}
-    .stats {{ fill: #7ee787; font-size: 14px; }}
+    text {{ font-family: Consolas, "Liberation Mono", monospace; font-size: 15px; white-space: pre; fill: {colors['foreground']}; }}
+    .fg, .ascii {{ fill: {colors['foreground']}; }}
+    .key {{ fill: {colors['key']}; }}
+    .value {{ fill: {colors['value']}; }}
+    .muted {{ fill: {colors['muted']}; }}
+    .accent {{ fill: {colors['accent']}; }}
   </style>
-  <rect width="1200" height="640" rx="18" fill="#010409" />
-  <rect x="12" y="12" width="1176" height="616" rx="14" fill="url(#panel)" stroke="#30363d" filter="url(#shadow)" />
-  <circle cx="42" cy="42" r="7" fill="#ff5f56" />
-  <circle cx="66" cy="42" r="7" fill="#ffbd2e" />
-  <circle cx="90" cy="42" r="7" fill="#27c93f" />
-  <text x="600" y="47" text-anchor="middle" class="window-title">henrikkvamme / README.md</text>
-  <line x1="12" y1="66" x2="1188" y2="66" class="rule" />
-  <line x1="488" y1="66" x2="488" y2="604" class="rule" />
-  {portrait_svg}
-  <text x="244" y="548" text-anchor="middle" class="portrait-name">Henrik Kvamme</text>
-  <text x="244" y="572" text-anchor="middle" class="portrait-role">full-stack developer · builder</text>
+  <rect width="1120" height="600" rx="15" fill="{colors['background']}" />
+  <g class="ascii" aria-label="ASCII portrait of Henrik Kvamme">
+    <text x="15" y="30" xml:space="preserve">{first_ascii_row}{''.join(ascii_rows)}</text>
+  </g>
   {details}
-  <line x1="40" y1="604" x2="1144" y2="604" class="rule" />
-  <text x="600" y="624" text-anchor="middle" class="stats">GitHub  ·  {stats_line}</text>
 </svg>
 '''
 
 
+def load_portrait() -> list[str]:
+    lines = PORTRAIT.read_text(encoding="ascii").splitlines()
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    if not lines:
+        raise RuntimeError("ASCII portrait is empty")
+    if any("StartNTNU" in line for line in lines):
+        raise RuntimeError("ASCII portrait must not contain the StartNTNU logo")
+    return lines
+
+
 def main() -> None:
-    portrait = PORTRAIT.read_text(encoding="utf-8")
-    svg = build_svg(profile_stats(), portrait)
-    OUTPUT.write_text(svg, encoding="utf-8")
-    print(f"Wrote {OUTPUT}")
+    stats = fetch_stats(GitHubClient())
+    portrait = load_portrait()
+    for theme, output in OUTPUTS.items():
+        output.write_text(build_svg(stats, portrait, theme=theme), encoding="utf-8")
+        print(f"Wrote {output.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

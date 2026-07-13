@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="600" viewBox="0 0 1120 600" role="img" aria-labelledby="title desc">
+  <title id="title">Henrik Kvamme's GitHub profile</title>
+  <desc id="desc">A portrait made from literal ASCII characters beside Henrik's work and automatically updated public GitHub statistics.</desc>
+  <style>
+    text { font-family: Consolas, "Liberation Mono", monospace; font-size: 15px; white-space: pre; fill: #24292f; }
+    .fg, .ascii { fill: #24292f; }
+    .key { fill: #953800; }
+    .value { fill: #0550ae; }
+    .muted { fill: #6e7781; }
+    .accent { fill: #1a7f37; }
+  </style>
+  <rect width="1120" height="600" rx="15" fill="#f6f8fa" />
+  <g class="ascii" aria-label="ASCII portrait of Henrik Kvamme">
+    <text x="15" y="30" xml:space="preserve">               ----+sd-.<tspan x="15" dy="20">            --/+yo-  oy/+hs:-</tspan><tspan x="15" dy="20">          --: .o+`..` :o ` +dy.</tspan><tspan x="15" dy="20">       --+  :y -  /-:+.. .hoss.:</tspan><tspan x="15" dy="20">      -o+:. .hs.`-.h-h` +dsmosd s-</tspan><tspan x="15" dy="20">     -`  ooy -+`MN-: Nm+ho-  /N:sm</tspan><tspan x="15" dy="20">      / y  sM/o/-/ydmMMMdmMMd/ hs+-</tspan><tspan x="15" dy="20">      - o./hhy/` .-::-.  `\hMm..`h-</tspan><tspan x="15" dy="20">       -y d+M/    o    o    \mmM+ .-</tspan><tspan x="15" dy="20">         /:MMy    `-..-`    yMM:+Nd</tspan><tspan x="15" dy="20">         My+MMM\    /\    /MMMd-MMM`</tspan><tspan x="15" dy="20">         sM yMMM\  /  \  /MMMM+oMMd</tspan><tspan x="15" dy="20">          yyyMMM|  `--`  |MMMMoyM/</tspan><tspan x="15" dy="20">            MMNM\ .----. /MMMMM.</tspan><tspan x="15" dy="20">            /MMy `+ssss+` MMMMMd</tspan><tspan x="15" dy="20">             .m+-.`----`. +osNN</tspan><tspan x="15" dy="20">              oM-.///+ohNMMMM</tspan><tspan x="15" dy="20">              +MMNNMMMMMMMMMM:   -</tspan><tspan x="15" dy="20">              -MMMddydMNMMMMMM   -</tspan><tspan x="15" dy="20">           +         -.          :</tspan><tspan x="15" dy="20">      ----           m/           :--</tspan><tspan x="15" dy="20">---:-`.                              :/--</tspan><tspan x="15" dy="20">                                         `-:</tspan></text>
+  </g>
+  <text x="430" y="30" class="fg">henrik@github <tspan class="muted">----------------------------------------------------</tspan></text>
+  <text x="430" y="60"><tspan class="muted">. </tspan><tspan class="key">OS</tspan>:<tspan class="muted"> ...................... </tspan><tspan class="value">macOS, Linux</tspan></text>
+  <text x="430" y="80"><tspan class="muted">. </tspan><tspan class="key">Role</tspan>:<tspan class="muted"> .................... </tspan><tspan class="value">Software engineer + startup builder</tspan></text>
+  <text x="430" y="100"><tspan class="muted">. </tspan><tspan class="key">Company</tspan>:<tspan class="muted"> ................. </tspan><tspan class="value">Texicon</tspan></text>
+  <text x="430" y="120"><tspan class="muted">. </tspan><tspan class="key">Education</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">Computer Science @ NTNU</tspan></text>
+  <text x="430" y="140"><tspan class="muted">. </tspan><tspan class="key">Location</tspan>:<tspan class="muted"> ................ </tspan><tspan class="value">Trondheim, Norway</tspan></text>
+  <text x="430" y="180" class="fg">- Building <tspan class="muted">-----------------------------------------------------</tspan></text>
+  <text x="430" y="210"><tspan class="muted">. </tspan><tspan class="key">Henteplan</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">13 providers / 265+ municipalities</tspan></text>
+  <text x="430" y="230"><tspan class="muted">. </tspan><tspan class="key">Folio MCP</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">14 tools for business banking</tspan></text>
+  <text x="430" y="250"><tspan class="muted">. </tspan><tspan class="key">Portfolio</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">henrikkvamme.no</tspan></text>
+  <text x="430" y="290" class="fg">- GitHub <tspan class="muted">-------------------------------------------------------</tspan></text>
+  <text x="430" y="320"><tspan class="muted">. </tspan><tspan class="key">Contributions.1y</tspan>:<tspan class="muted"> ........ </tspan><tspan class="value">2,467 total / 884 public</tspan></text>
+  <text x="430" y="340"><tspan class="muted">. </tspan><tspan class="key">Output.1y</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">821 commits / 37 pull requests</tspan></text>
+  <text x="430" y="360"><tspan class="muted">. </tspan><tspan class="key">Merged.PRs</tspan>:<tspan class="muted"> .............. </tspan><tspan class="value">115 public</tspan></text>
+  <text x="430" y="380"><tspan class="muted">. </tspan><tspan class="key">Projects</tspan>:<tspan class="muted"> ................ </tspan><tspan class="value">50 original / 55 public repos</tspan></text>
+  <text x="430" y="400"><tspan class="muted">. </tspan><tspan class="key">Stars</tspan>:<tspan class="muted"> ................... </tspan><tspan class="value">40 on original repos</tspan></text>
+  <text x="430" y="420"><tspan class="muted">. </tspan><tspan class="key">Streaks</tspan>:<tspan class="muted"> ................. </tspan><tspan class="value">8 days current / 23 days longest</tspan></text>
+  <text x="430" y="440"><tspan class="muted">. </tspan><tspan class="key">Active.Days.1y</tspan>:<tspan class="muted"> .......... </tspan><tspan class="value">183</tspan></text>
+  <text x="430" y="460"><tspan class="muted">. </tspan><tspan class="key">Followers</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">47</tspan></text>
+  <text x="430" y="480"><tspan class="muted">. </tspan><tspan class="key">Top.Repository</tspan>:<tspan class="muted"> .......... </tspan><tspan class="value">youtube-voice-go / 11 stars</tspan></text>
+  <text x="430" y="520" class="fg">- Stack <tspan class="muted">--------------------------------------------------------</tspan></text>
+  <text x="430" y="550"><tspan class="muted">. </tspan><tspan class="key">Languages</tspan>:<tspan class="muted"> ............... </tspan><tspan class="value">TypeScript, Python, Rust, Shell</tspan></text>
+  <text x="430" y="570"><tspan class="muted">. </tspan><tspan class="key">Systems</tspan>:<tspan class="muted"> ................. </tspan><tspan class="value">Nix, Docker, GitHub Actions, self-hosting</tspan></text>
+</svg>
