@@ -10,3 +10,11 @@
 <sub>Inspired by [Andrew Grant's profile](https://github.com/andrew6rant/).</sub>
 
 </div>
+
+<!--
+The portrait is literal ASCII generated from assets/portrait-source.png with:
+./scripts/generate_ascii_portrait.sh
+
+The profile statistics are refreshed daily by .github/workflows/update-profile.yml.
+Both generators are deterministic and use no LLM.
+-->

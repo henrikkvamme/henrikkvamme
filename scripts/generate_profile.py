@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate Henrik's profile SVGs from public GitHub data.
 
-The portrait is approved, static ASCII text. This script only fetches structured
-GitHub data and renders deterministic light and dark SVGs. It has no LLM or
-image-generation dependency.
+The portrait is generated from assets/portrait-source.png by the jp2a wrapper
+in scripts/generate_ascii_portrait.sh. This script fetches structured GitHub
+data and renders deterministic light and dark SVGs. Neither step uses an LLM.
 """
 
 from __future__ import annotations
@@ -335,7 +335,7 @@ def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
     colors = palettes[theme]
     first_ascii_row = html.escape(portrait[0], quote=False)
     ascii_rows = [
-        f'<tspan x="15" dy="20">{html.escape(line, quote=False)}</tspan>'
+        f'<tspan x="15" dy="16">{html.escape(line, quote=False)}</tspan>'
         for line in portrait[1:]
     ]
 
@@ -403,6 +403,7 @@ def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
   <style>
     text {{ font-family: Consolas, "Liberation Mono", monospace; font-size: 15px; white-space: pre; fill: {colors['foreground']}; }}
     .fg, .ascii {{ fill: {colors['foreground']}; }}
+    .ascii {{ font-size: 13px; }}
     .key {{ fill: {colors['key']}; }}
     .value {{ fill: {colors['value']}; }}
     .muted {{ fill: {colors['muted']}; }}
