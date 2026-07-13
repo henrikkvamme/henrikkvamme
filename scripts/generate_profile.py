@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets" / "profile-terminal.svg"
-PORTRAIT = ROOT / "assets" / "portrait.txt"
+PORTRAIT = ROOT / "assets" / "portrait-fragment.svg"
 USERNAME = "henrikkvamme"
 
 FALLBACK = {
@@ -90,16 +90,11 @@ def section(y: int, title: str) -> str:
     )
 
 
-def build_svg(stats: dict[str, int], portrait: list[str]) -> str:
-    portrait_svg = "\n".join(
-        text(40, 92 + index * 13, line.replace("&", "&amp;"), "portrait")
-        for index, line in enumerate(portrait)
-    )
-
+def build_svg(stats: dict[str, int], portrait_svg: str) -> str:
     details = "\n".join(
         (
             '<text x="520" y="74" class="prompt-user">henrik</text>',
-            '<text x="574" y="74" class="prompt-muted">@trondheim</text>',
+            '<text x="582" y="74" class="prompt-muted">@trondheim</text>',
             section(114, "Profile"),
             row(146, "OS", "macOS, Linux"),
             row(172, "Role", "Full-stack developer @ Texicon"),
@@ -140,7 +135,6 @@ def build_svg(stats: dict[str, int], portrait: list[str]) -> str:
   <style>
     text {{ font-family: SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 15px; }}
     .window-title {{ fill: #8b949e; font-size: 13px; }}
-    .portrait {{ fill: #79c0ff; font-size: 12px; white-space: pre; }}
     .portrait-name {{ fill: #f0f6fc; font-size: 19px; font-weight: 700; }}
     .portrait-role {{ fill: #8b949e; font-size: 13px; }}
     .prompt-user {{ fill: #7ee787; font-size: 17px; font-weight: 700; }}
@@ -171,7 +165,7 @@ def build_svg(stats: dict[str, int], portrait: list[str]) -> str:
 
 
 def main() -> None:
-    portrait = PORTRAIT.read_text(encoding="utf-8").splitlines()
+    portrait = PORTRAIT.read_text(encoding="utf-8")
     svg = build_svg(profile_stats(), portrait)
     OUTPUT.write_text(svg, encoding="utf-8")
     print(f"Wrote {OUTPUT}")
