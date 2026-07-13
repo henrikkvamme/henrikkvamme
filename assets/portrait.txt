@@ -1,34 +1,22 @@
 
-
-                     .:::-
-                  --::::++:----
-               :--:::---::::::-:
-             .::--:::----:+::::+:
-            .-...---.------...-++:.
-          .--..-:------------++++--.
-         -::---:+--.-:::+:-:++++++::.
-        ------.-:::+::+:+::+++++:*::+.
-        ..--+-:-:++**++:*o***+:-:*+++.
-        .----::++::*****syyyoo*::++++-
-        .--:--**+o*++oyymmmyydys*::++-
-         -.:-+*oosssydmmdyoosssso:::--
-         .:::++oosooodmdsssyyysos*:-+.
-           -:**o***oosdyyoo+osyss*+:.
-           .-+so*oosooysssssysyyo++*-
-           .**sssyyyooyyyddddddyooys+
-           .**osyyddo*yssdmmmddy*syso
-            so*sydmdoodyoymmmmds*ddd:
-            +s*oyddysossydddmmyooyss
-             o*osdyssyddyyyddddoodo
-              -osds*+*ssoooymddo+-
-              .ooydsosyyyyddddys+
-               *oosyyyddddddyyso.
-               .oo*syydmmddysso*
-                .***syyyyys****o.
-                 :::++++++*ooyys.
-                 +o***sydddyyddy-
-                 +ssooydmmdydmdy+   .
-                 +sysosydddydmdyo.  -
-                 -*syooosyyydddyo-...
-              .    .....--...........
+                      ---.
+                .---::-:++::---.
+             .::--::-----::::::+:
+           .-...-----------..-:++--
+         -+:-.-:+--.-:::+:-:++++++::.
+        .---:---:++++:+:*+:+*++::*+++.
+        .----:+:+::*****syysoo*+:++++-
+         -.:-:*o*soooymmddysyyyso::+:-
+          .::++oooooodmdsoossysos*:-+
+           .-+oo***oooyssssossyso+++-
+           .**sssyyyooyssddddddyooys*
+            ooosydmdoodyoymmmmds*yyy:
+            .o*oyddyssyyydddmmdooys-
+              -osds**ossoosymddo+.
+               *osyysyydddddyyss-
+               .*oosyydddddssoo*
+                .+++**ooooo*osss.
+                 +oo*osydddydddy:   .
+                 +sysosydddydmdy*.  -
+                 .:**+::*o**ooo*+....
               ..        -.............

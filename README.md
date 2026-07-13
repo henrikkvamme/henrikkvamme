@@ -5,7 +5,7 @@
   <img alt="Henrik Kvamme's ASCII GitHub profile card" src="https://raw.githubusercontent.com/henrikkvamme/henrikkvamme/main/assets/light-mode.svg">
 </picture>
 
-[Website](https://henrikkvamme.no) · [Henteplan](https://github.com/henrikkvamme/henteplan) · [Folio MCP](https://github.com/henrikkvamme/folio-mcp) · [LinkedIn](https://linkedin.com/in/henrik-kvamme) · [Email](mailto:henrik.halvorsen.kvamme@gmail.com)
+[Website](https://henrikkvamme.no) · [Devme](https://github.com/devme-sh/devme) · Nixus · Sambu · [LinkedIn](https://linkedin.com/in/henrik-kvamme) · [Email](mailto:henrik.halvorsen.kvamme@gmail.com)
 
 <sub>Inspired by [Andrew Grant's profile](https://github.com/andrew6rant/).</sub>
 

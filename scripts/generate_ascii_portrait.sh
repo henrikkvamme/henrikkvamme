@@ -35,7 +35,7 @@ if [[ "$version" != "$EXPECTED_VERSION" ]]; then
 fi
 
 "${converter[@]}" \
-  --size=50x34 \
+  --width=50 \
   --chars="$PALETTE" \
   --output="$tmp" \
   "$SOURCE"

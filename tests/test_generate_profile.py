@@ -80,17 +80,6 @@ class ProfileStatsTests(unittest.TestCase):
         self.assertEqual(stats.contributions, 2465)
         self.assertEqual(stats.current_streak, 2)
 
-    def test_derives_project_proof_points_from_versioned_source(self) -> None:
-        projects = generate_profile.parse_project_stats(
-            "- **13 providers**\n- **265+ municipalities** covered",
-            "server.registerTool(\nserver.registerTool(\n",
-        )
-
-        self.assertEqual(projects.henteplan_providers, 13)
-        self.assertEqual(projects.henteplan_municipalities, "265+")
-        self.assertEqual(projects.folio_tools, 2)
-
-
 class SvgTests(unittest.TestCase):
     def test_portrait_is_emitted_as_literal_ascii_text(self) -> None:
         stats = generate_profile.ProfileStats(
@@ -114,6 +103,11 @@ class SvgTests(unittest.TestCase):
 
         self.assertIn('<g class="ascii"', svg)
         self.assertIn(".-:/+osyhdmN", svg)
+        self.assertIn("Devme", svg)
+        self.assertIn("Nixus", svg)
+        self.assertIn("Sambu", svg)
+        self.assertNotIn("Henteplan", svg)
+        self.assertNotIn("Folio MCP", svg)
         self.assertNotIn("portrait-glyph", svg)
         self.assertNotIn("<use ", svg)
 

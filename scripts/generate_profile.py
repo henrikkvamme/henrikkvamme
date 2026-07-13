@@ -8,12 +8,10 @@ data and renders deterministic light and dark SVGs. Neither step uses an LLM.
 
 from __future__ import annotations
 
-import base64
 import datetime as dt
 import html
 import json
 import os
-import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,13 +38,6 @@ class ActivityStats:
 
 
 @dataclass(frozen=True)
-class ProjectStats:
-    henteplan_providers: int
-    henteplan_municipalities: str
-    folio_tools: int
-
-
-@dataclass(frozen=True)
 class ProfileStats:
     public_repos: int
     original_repos: int
@@ -62,9 +53,6 @@ class ProfileStats:
     longest_streak: int
     restricted_contributions: int = 0
     merged_pull_requests: int = 0
-    henteplan_providers: int = 0
-    henteplan_municipalities: str = "0"
-    folio_tools: int = 0
 
     @property
     def public_contributions(self) -> int:
@@ -121,14 +109,6 @@ class GitHubClient:
             raise RuntimeError(f"GitHub GraphQL errors: {response['errors']}")
         return response
 
-    def repository_text(self, repository: str, path: str) -> str:
-        response = self.rest(f"/repos/{USERNAME}/{repository}/contents/{path}")
-        if not isinstance(response, dict) or response.get("encoding") != "base64":
-            raise RuntimeError(f"Could not read {repository}/{path} from GitHub")
-        encoded = str(response["content"]).replace("\n", "")
-        return base64.b64decode(encoded).decode("utf-8")
-
-
 def calculate_activity(
     days: list[dict[str, Any]], *, today: dt.date | None = None
 ) -> ActivityStats:
@@ -165,11 +145,9 @@ def summarize_stats(
     user: dict[str, Any],
     repos: list[dict[str, Any]],
     contribution_data: dict[str, Any],
-    project_stats: ProjectStats | None = None,
     *,
     today: dt.date | None = None,
 ) -> ProfileStats:
-    project_stats = project_stats or ProjectStats(0, "0", 0)
     original_repos = [repo for repo in repos if not bool(repo.get("fork"))]
     top_repo = max(
         original_repos,
@@ -195,24 +173,6 @@ def summarize_stats(
             contribution_data.get("restrictedContributionsCount", 0)
         ),
         merged_pull_requests=int(contribution_data.get("mergedPullRequests", 0)),
-        henteplan_providers=project_stats.henteplan_providers,
-        henteplan_municipalities=project_stats.henteplan_municipalities,
-        folio_tools=project_stats.folio_tools,
-    )
-
-
-def parse_project_stats(henteplan_readme: str, folio_source: str) -> ProjectStats:
-    providers = re.search(r"\*\*(\d+) providers\*\*", henteplan_readme)
-    municipalities = re.search(
-        r"\*\*(\d+\+) municipalities\*\*", henteplan_readme
-    )
-    folio_tools = folio_source.count("server.registerTool(")
-    if not providers or not municipalities or folio_tools == 0:
-        raise RuntimeError("Could not derive project proof points from source")
-    return ProjectStats(
-        henteplan_providers=int(providers.group(1)),
-        henteplan_municipalities=municipalities.group(1),
-        folio_tools=folio_tools,
     )
 
 
@@ -233,11 +193,6 @@ def fetch_stats(client: GitHubClient) -> ProfileStats:
 
     if not isinstance(user, dict):
         raise RuntimeError("GitHub REST returned an unexpected response")
-
-    project_stats = parse_project_stats(
-        client.repository_text("henteplan", "README.md"),
-        client.repository_text("folio-mcp", "src/server.ts"),
-    )
 
     query = """
     query ProfileActivity($login: String!, $pullRequestQuery: String!) {
@@ -288,7 +243,7 @@ def fetch_stats(client: GitHubClient) -> ProfileStats:
         "mergedPullRequests": data["pullRequests"]["issueCount"],
         "days": days,
     }
-    return summarize_stats(user, repos, contribution_data, project_stats)
+    return summarize_stats(user, repos, contribution_data)
 
 
 def format_number(value: int) -> str:
@@ -335,7 +290,7 @@ def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
     colors = palettes[theme]
     first_ascii_row = html.escape(portrait[0], quote=False)
     ascii_rows = [
-        f'<tspan x="15" dy="16">{html.escape(line, quote=False)}</tspan>'
+        f'<tspan x="15" dy="18">{html.escape(line, quote=False)}</tspan>'
         for line in portrait[1:]
     ]
 
@@ -351,14 +306,9 @@ def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
             row(120, "Education", "Computer Science @ NTNU"),
             row(140, "Location", "Trondheim, Norway"),
             section(180, "Building"),
-            row(
-                210,
-                "Henteplan",
-                f"{stats.henteplan_providers} providers / "
-                f"{stats.henteplan_municipalities} municipalities",
-            ),
-            row(230, "Folio MCP", f"{stats.folio_tools} tools for business banking"),
-            row(250, "Portfolio", "henrikkvamme.no"),
+            row(210, "Devme", "Dev-stack supervisor for worktrees"),
+            row(230, "Nixus", "Nix configuration + synchronized agent skills"),
+            row(250, "Sambu", "Co-living app for students"),
             section(290, "GitHub"),
             row(
                 320,
@@ -403,7 +353,6 @@ def build_svg(stats: ProfileStats, portrait: list[str], *, theme: str) -> str:
   <style>
     text {{ font-family: Consolas, "Liberation Mono", monospace; font-size: 15px; white-space: pre; fill: {colors['foreground']}; }}
     .fg, .ascii {{ fill: {colors['foreground']}; }}
-    .ascii {{ font-size: 13px; }}
     .key {{ fill: {colors['key']}; }}
     .value {{ fill: {colors['value']}; }}
     .muted {{ fill: {colors['muted']}; }}
